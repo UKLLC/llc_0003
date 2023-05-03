@@ -6,4 +6,4 @@ While surveys asked whether people think they had Covid-19 this information will
 Our surveys and NHS healthcare records also capture different aspects of mental health and wellbeing. For example, surveys ask about symptoms related to depression, while NHS records tell us who is taking medication for mental health problems. By combining these sets of data, we will have a more accurate picture of what people’s mental health and wellbeing are like and how they have changed during the pandemic. 
 We hope that this study will tell us how COVID-19 infection might influence mental health problems. We will share the results of this project with policy makers to guide decisions on how to protect the mental health of people who have had COVID-19.
 
-Richard Shaw
+Richard Shaw richard.shaw@glasgow.ac.uk 
