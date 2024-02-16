@@ -1,0 +1,906 @@
+###################################################################################
+######## Title: Selected code from LLC_0003 
+
+######## Author: Richard.Shaw@glasgow.ac.uk
+
+###### Background: 
+# This is selected code from LLC_0003 used to do some preliminary descriptives and analyses.
+# It is being extracted so hopefully I or anybody else is not re-inventing the wheel. 
+# Note that
+# I am not an expert in R, and this is fairly basic . 
+# This is snippets of code and will not necessarily run. 
+# Some of the code may have been also developed in LLC_0010 which is still active at time of writing. 
+# I am extracting it from the Safehaven ~14 Feb 2024. Almost a year since I last worked on it. April 2023 
+# As a consequence I may not be entirely accurately noting all the details. 
+# Finally, I am dyslexic and making no appologies about spelling mistakes. Particularly, as I 
+# am writing this in a code editor not a word processing package. 
+
+##### Setup 
+# Note the start of this file used a standard (and early version) of the  r_helper file.
+# There were a mixture of mistakes in the version I am cutting and pasting things from, but due to my mistakes and 
+# I think a few things might be carried over from the r_helper file 
+# As stated this is not inteded to run. But merely act as notes should I do anything simialr in the future. 
+
+##### Packages used
+# listing here the packags I used in the most recent extraction 
+# tidyr", "dplyr", "RODBC", "expss", "stringr", "readxl", "feather", "lubridate
+
+##### Environment setting commands 
+# I often use "options(scipen = 999)" to turn off the scienfitc notation. 
+# Some of the codes are very long digit numbers and when converted to scientifc notion are not understandable. 
+
+
+
+### Next section is a cut and paste of all the NHS data files I looked at on 17 April 2024
+# I basically imported each in turn and processed for possible futher use. 
+# Not the N for many meant they weren't useable. 
+# These were principallly carried out to produce some basic COVID19 statistics 
+# The conclusion was that futher analysis was not merrited. 
+
+# In the nhsd_gdppr code section around line 437 focusing on COVID19 the nhsd_gdppr Code is probably more efficent. 
+# However, it is not necessarily easy to read so I have included some older code I developed around 560.
+# However, it is not necessarily easy to read so I have included 
+
+# Around line 720 I have included some very old scrappy code for NHSD_hesapc which shows the logic on how I created
+# vectors of ICD10 codelists which can then be used to help indicate records of data. 
+
+###################################################################################
+#Using one table method to extract the data 
+####################################################################################
+# core_denominator_file1_20220412
+# NOte this shows linkage permisions 
+
+
+data_source <- "core"
+table <- "denominator_file1_20220412"
+# run labelling function
+data_t1 <- lab_func(proj_no,data_source,table)
+# create df name
+name_t1 <- paste0(data_source,"_",table)
+# assign name to dataset
+assign(name_t1, data_t1)
+
+head(core_denominator_file1_20220412)
+saveRDS(core_denominator_file1_20220412 , file = paste0("S:/LLC_0010/data/core/core_denominator_", Sys.Date() ,".rds"))
+glimpse(core_denominator_file1_20220412)
+unique(core_denominator_file1_20220412$cohort)
+
+
+
+#################################################################################
+# core_nhsd_presence_v0006_20221216
+# This has individuals presence in each nshd data sets. 
+data_source <- "core"
+table <- "nhsd_presence_v0006_20221216"
+# run labelling function
+data_t1 <- lab_func(proj_no,data_source,table)
+# create df name
+name_t1 <- paste0(data_source,"_",table)
+# assign name to dataset
+assign(name_t1, data_t1)
+
+glimpse(core_nhsd_presence_v0006_20221216)
+
+
+saveRDS(core_nhsd_presence_v0006_20221216 , file = paste0("S:/LLC_0003/data/core/core_presence_", Sys.Date() ,".rds"))
+
+
+
+################################################################################
+## nhsd_chess_v0001
+# Note acording to notes this only people who have been comitted to hospital with Covid. It includes some potentially interesting other variables 
+# But is very biased. 
+
+data_source <- "nhsd"
+table <- "chess_v0001"
+# run labelling function
+data_t1 <- lab_func(proj_no,data_source,table)
+# create df name
+name_t1 <- paste0(data_source,"_",table)
+# assign name to dataset
+assign(name_t1, data_t1)
+
+#Save with date issue to keep track of old-files
+saveRDS(nhsd_chess_v0001 , file = paste0("S:/LLC_0003/data/nhsd/nhsd_chess_", Sys.Date() , ".rds"))
+
+#Load version as of moment also keep names shorter. 
+chess_tests <- readRDS("S:/LLC_0003/data/nhsd/nhsd_chess_2023-04-18.rds")
+chess_tests <- chess_tests[, c("llc_0003_stud_id", "labtestdate")]
+
+chess_tests$labtestdate_chess <- ymd(chess_tests$labtestdate)
+
+
+chess_tests$test_chess_study <- -1
+chess_tests$test_chess_study[chess_tests$labtestdate_chess < ymd("2021-04-01")] <- 2
+
+chess_tests$test_chess_poststudy <- -1
+chess_tests$test_chess_poststudy[chess_tests$labtestdate_chess >= ymd("2021-04-01") ] <- 2
+
+chess_tests_by_individual <- chess_tests|>
+  group_by(llc_0003_stud_id) |>
+  summarise(test_chess_study = max(test_chess_study),
+            test_chess_poststudy = max(test_chess_poststudy)
+  )
+
+
+saveRDS(chess_tests_by_individual , file = paste0("S:/LLC_0003/data/nhsd/nhsd_chess_test_byindividual_", Sys.Date() , ".rds"))
+
+min(chess_tests$labtestdate_chess)
+
+
+
+################################################################################
+### nhsd_covidsgss_v0001
+#This is pilar testing and one and two one of the more important files. Note that only positive tests
+# Are included. 
+
+data_source <- "nhsd"
+table <- "covidsgss_v0001"
+# run labelling function
+data_t1 <- lab_func(proj_no,data_source,table)
+# create df name
+name_t1 <- paste0(data_source,"_",table)
+# assign name to dataset
+assign(name_t1, data_t1)
+
+saveRDS(nhsd_covidsgss_v0001 , file = paste0("S:/LLC_0003/data/nhsd/nhsd_covidsgss_", Sys.Date() , ".rds"))
+
+nhsd_covidsgss <- readRDS("S:/LLC_0003/data/nhsd/nhsd_covidsgss_2023-04-18.rds")
+
+
+#Note that I will use specimen_date to divide into study period versus non study period. 
+covidsgss_selected <- nhsd_covidsgss[, c("llc_0003_stud_id", "specimen_date")]
+
+covidsgss_selected$PosTest_study <- -1
+covidsgss_selected$PosTest_study[covidsgss_selected$specimen_date < ymd("2021-04-01")] <- 2
+
+covidsgss_selected$PosTest_poststudy <- -1
+covidsgss_selected$PosTest_poststudy[covidsgss_selected$specimen_date >= ymd("2021-04-01")] <- 2
+
+nhds_covidsgss_byindividual <- covidsgss_selected |>
+  group_by(llc_0003_stud_id) |>
+  summarize(PosTest_study = max(PosTest_study),
+            PosTest_poststudy = max(PosTest_poststudy))
+
+saveRDS(nhds_covidsgss_byindividual , file = paste0("S:/LLC_0003/data/nhsd/nhsd_covidsgss_byindividual_" , Sys.Date() , ".rds"))
+
+
+min(covidsgss_selected$specimen_dat)
+
+
+###############################################################################
+###### nhsd_ielisa_v0001
+
+data_source <- "nhsd"
+table <- "ielisa_v0001"
+# run labelling function
+data_t1 <- lab_func(proj_no,data_source,table)
+# create df name
+name_t1 <- paste0(data_source,"_",table)
+# assign name to dataset
+assign(name_t1, data_t1)
+
+saveRDS(nhsd_ielisa_v0001 , file = paste0("S:/LLC_0003/data/nhsd/nhsd_ielisa_" , Sys.Date() , ".rds"))
+
+nhsd_ielisa <- readRDS("S:/LLC_0003/data/nhsd/nhsd_ielisa_2023-04-19.rds" )
+
+ielisa_selected <- nhsd_ielisa[,c("llc_0003_stud_id", "testresult"    ,   "teststartdate"  )]
+
+
+#*recoded based on SNOMED_CT search
+# Note due to issues with the max() funciton I am using -1  rather than NA
+#*1. SCT:1321541000000108  "SARS-CoV2 -ImmunoglobulinG Detected" to 2
+#*2. SCT:1321571000000102  "SARS-CoV2 -ImmunoglobulinG Not-Detect" to 0 
+#*2. SCT:1321641000000107  "SARS-CoV2 -ImmunoglobulinG Unknown" to 1 
+#Goal variable names for export 
+# IgG_ielisa_study
+# IgG_ielisa_poststudy
+
+
+ielisa_selected$IgG_study <- -1
+ielisa_selected$IgG_study[ ielisa_selected$testresult == "SCT:1321541000000108" & ielisa_selected$teststartdate < ymd("2021-04-01")] <- 2
+ielisa_selected$IgG_study[ ielisa_selected$testresult == "SCT:1321571000000102" & ielisa_selected$teststartdate < ymd("2021-04-01")] <- 0
+ielisa_selected$IgG_study[ ielisa_selected$testresult == "SCT:1321641000000107" & ielisa_selected$teststartdate < ymd("2021-04-01")] <- 1
+
+ielisa_selected$IgG_poststudy <- -1
+ielisa_selected$IgG_poststudy[ ielisa_selected$testresult == "SCT:1321541000000108" & ielisa_selected$teststartdate >= ymd("2021-04-01")] <- 2
+ielisa_selected$IgG_poststudy[ ielisa_selected$testresult == "SCT:1321571000000102" & ielisa_selected$teststartdate >= ymd("2021-04-01")] <- 0
+ielisa_selected$IgG_poststudy[ ielisa_selected$testresult == "SCT:1321641000000107" & ielisa_selected$teststartdate >= ymd("2021-04-01")] <- 1
+
+
+
+#Individual_records_by_study period
+
+nhds_ielisa_byindividual <- ielisa_selected |>
+  group_by(llc_0003_stud_id) |>
+  summarize(IgG_study = max(IgG_study),
+            IgG_poststudy = max(IgG_poststudy))
+
+saveRDS(nhds_ielisa_byindividual , file = paste0("S:/LLC_0003/data/nhsd/nhsd_ielisa_byindividual_" , Sys.Date() , ".rds"))
+
+max(ielisa_selected$teststartdate) 
+
+
+################################################################################
+#### nhsd_npex_v0001
+
+data_source <- "nhsd"
+table <- "npex_v0001"
+# run labelling function
+data_t1 <- lab_func(proj_no,data_source,table)
+# create df name
+name_t1 <- paste0(data_source,"_",table)
+assign(name_t1, data_t1)
+
+
+#Using feather as it is noticably faster. 
+write_feather(nhsd_npex_v0001 , path = paste0("S:/LLC_0003/data/nhsd/nhsd_npex_", Sys.Date() ,".feather"))
+
+nhsd_npex <- read_feather(path = "S:/LLC_0003/data/nhsd/nhsd_npex_2023-04-19.feather") 
+
+
+#Select key data files 
+npex_selected <- nhsd_npex[,c("llc_0003_stud_id", "testresult"    ,   "teststartdate"  )]
+
+#npex_selected$teststartdate <- ymd(npex_selected$teststartdate)
+
+#For this exercise I will use the folloing categories. 
+# 0 = Negative
+# 1 = Unknown
+# 2 = Positive 
+# **recoded based on SNOMED_CT search
+# *1. SCT:1240581000000104 - "Positive-RNA Detection" 2 
+# *2. SCT:1240591000000102 -  "Neg-RNA Detection" 0
+# *3. SCT:1321691000000102 -  "Unk-RNA Detection" 1
+# *4. SCT:1322781000000102 -  "Pos-Antigen Detection" 2
+# *5. SCT:1322791000000100 -  "Neg-Antigen Detection" 0
+# *6. SCT:1322821000000105 -  "Unk-Antigen Detection Result" 1
+
+
+
+#Goal variable names for export 
+# antigen_npex_study
+# antigen_npex_poststudy
+# rna_npex_study
+# rna_npex_postudy 
+
+npex_selected$rna <- - 1
+npex_selected$rna[ npex_selected$testresult == "SCT:1240581000000104"] <- 2
+npex_selected$rna[ npex_selected$testresult == "SCT:1240591000000102"] <- 0
+npex_selected$rna[ npex_selected$testresult == "SCT:1321691000000102"] <- 1
+
+npex_selected$antigen  <- -1
+npex_selected$antigen[ npex_selected$testresult == "SCT:1322781000000102"] <- 2
+npex_selected$antigen[ npex_selected$testresult == "SCT:1322791000000100"] <- 0
+npex_selected$antigen[ npex_selected$testresult == "SCT:1322821000000105"] <- 1
+table(npex_selected$antigen,useNA = "always")
+
+
+npex_selected$rna_study <- -1
+npex_selected$rna_study[ npex_selected$testresult == "SCT:1240581000000104" & npex_selected$teststartdate < ymd("2021-04-01")] <- 2
+npex_selected$rna_study[ npex_selected$testresult == "SCT:1240591000000102" & npex_selected$teststartdate < ymd("2021-04-01")] <- 0
+npex_selected$rna_study[ npex_selected$testresult == "SCT:1321691000000102" & npex_selected$teststartdate < ymd("2021-04-01")] <- 1
+
+npex_selected$antigen_study  <- -1
+npex_selected$antigen_study[ npex_selected$testresult == "SCT:1322781000000102" & npex_selected$teststartdate < ymd("2021-04-01")] <- 2
+npex_selected$antigen_study[ npex_selected$testresult == "SCT:1322791000000100" & npex_selected$teststartdate < ymd("2021-04-01")] <- 0
+npex_selected$antigen_study[ npex_selected$testresult == "SCT:1322821000000105" & npex_selected$teststartdate < ymd("2021-04-01")] <- 1
+
+
+npex_selected$rna_poststudy <- -1
+npex_selected$rna_poststudy[ npex_selected$testresult == "SCT:1240581000000104" & npex_selected$teststartdate >= ymd("2021-04-01") ] <- 2
+npex_selected$rna_poststudy[ npex_selected$testresult == "SCT:1240591000000102" & npex_selected$teststartdate >= ymd("2021-04-01")] <- 0
+npex_selected$rna_poststudy[ npex_selected$testresult == "SCT:1321691000000102" & npex_selected$teststartdate >= ymd("2021-04-01")] <- 1
+
+npex_selected$antigen_poststudy  <- -1
+npex_selected$antigen_poststudy[ npex_selected$testresult == "SCT:1322781000000102" & npex_selected$teststartdate >= ymd("2021-04-01")] <- 2
+npex_selected$antigen_poststudy[ npex_selected$testresult == "SCT:1322791000000100" & npex_selected$teststartdate >= ymd("2021-04-01")] <- 0
+npex_selected$antigen_poststudy[ npex_selected$testresult == "SCT:1322821000000105" & npex_selected$teststartdate >= ymd("2021-04-01")] <- 1
+
+
+nhds_npex_byindividual <- npex_selected |>
+  group_by(llc_0003_stud_id) |>
+  summarize(rna_any = max(rna),
+            antigen_any = max(antigen),
+            rna_study = max(rna_study),
+            antigen_study = max(antigen_study),
+            rna_poststudy = max(rna_poststudy),
+            antigen_poststudy = max(antigen_poststudy))
+glimpse(npex_selected)
+
+max(npex_selected$teststartdate)
+
+
+saveRDS(nhds_npex_byindividual , file = paste0("S:/LLC_0003/data/nhsd/nhsd_npex_byindividual_" , Sys.Date() , ".rds"))
+
+
+
+#########################################################################################################################
+
+data_source <- "nhsd"
+table <- "hesapc_v0001"
+# run labelling function
+data_t1 <- lab_func(proj_no,data_source,table)
+# create df name
+name_t1 <- paste0(data_source,"_",table)
+# assign name to dataset
+assign(name_t1, data_t1)
+
+
+saveRDS(nhsd_hesapc_v0001 , file = paste0("S:/LLC_0003/data/nhsd/nhsd_hesapc_", Sys.Date(), ".rds"))
+
+nhsd_hesapc <- readRDS("S:/LLC_0003/data/nhsd/nhsd_hesapc_2023-04-20.rds")
+
+glimpse(nhsd_hesapc)
+max(nhsd_hesapc$admidate)
+
+
+
+###### Vectors to simplify code
+### Vectors of variables 
+#Diagnosis 3 digit variables 
+diag_3_vars <- c()
+for (i in seq(1:12)) {
+  diag_3_vars <- append(diag_3_vars, paste0("diag_3_", str_pad(i, 2, pad = "0") ))
+}
+
+#Diagnosis 4 digit variables
+diag_4_vars<- c()
+for (i in seq(1:12)) {
+  diag_4_vars   <- append(diag_4_vars, paste0("diag_4_", str_pad(i, 2, pad = "0") ))
+}
+
+#Including cause variables 
+cause_diag_3_vars <-append(diag_3_vars, "cause_3", after = 0)
+
+cause_diag_4_vars <-append(diag_4_vars, "cause_4", after = 0)
+
+
+
+
+##### Vectors for ICD 10 codes 
+### Covid related vectors 
+#The following is based on Scottish  Clinical Coding Standards Februrary 2021 - Public Health Scotland
+#U07.1 - Confirmed Covid 
+#U07.2 - Suspected Covid not confirmed with a test
+#U07.3 - personal history of COVid-19 in Scotland 
+#U07.4 - Post Covid-19 condition 
+#U07.5 - Multisystem inflammatory syndrome associated with Covid-19 
+#U07.6 - Need for immunisation for covid 
+#U07.7 - Covid19 vaccines causing adverse effects/reactions. 
+
+
+###vectors of ICD codes
+#Simple loop to create list of all Emergency Covid codes
+# Note loops make more sense when applied to more complicated codes see mental health code
+
+all_covid_related <- c()
+for (i in seq(1:7)) {
+  all_covid_related <- append(all_covid_related, paste0("U07", i ))
+}
+
+#Loops to indicate people with a code indicating any disease
+covid_disease <-c()
+for (i in seq(1:5)) {
+  covid_disease <- append(covid_disease, paste0("U07", i ))
+}
+
+#Acute Covid 
+acute_covid <- c("U071", "U072")
+
+#Other Covid - NB I doubt this is valid but to get a sense of numbers. 
+other_covid_disease <- c("U074", "U075" , "U076" , "U08", "U09", "U010")
+
+#Note this code is from llc0010 and has not been code to address 
+
+nhsd_hespac_covid_indicated  <- nhsd_hesapc |>
+  mutate(covid_related  = if_else( if_any( diag_4_vars , ~ . %in% all_covid_related ), 1, 0),
+         covid_disease  = if_else( if_any( diag_4_vars , ~ . %in% covid_disease ), 1, 0),
+         acute_covid = if_else(if_any(diag_4_vars , ~ . %in% acute_covid), 1, 0),
+         confirmed_covid = if_else(if_any(diag_4_vars , ~ .  %in% "U071" ), 1, 0),
+         suspected_covid = if_else(if_any(diag_4_vars , ~ .  %in% "U072" ), 1, 0),
+         long_covid  = if_else( if_any( diag_4_vars , ~ . %in% "U074" ), 1, 0),
+         other_covid_disease  = if_else( if_any( diag_4_vars , ~ . %in% other_covid_disease ), 1, 0))
+
+#Some code for descriptives 
+
+
+names(nhsd_hespac_covid_indicated)
+
+hesapc_selected <- nhsd_hespac_covid_indicated[, c("llc_0010_stud_id" ,  "admidate" , "acute_covid"  , "confirmed_covid"  , "suspected_covid"  , "long_covid"  )]
+
+
+
+hesapc_selected$covid19_hesapc_study <- -1 
+hesapc_selected$covid19_hesapc_study[hesapc_selected$acute_covid == 1 & hesapc_selected$admidate < ymd("2021-06-01") ] <- 1 
+
+hesapc_selected$covid19_hesapc_poststudy <- -1 
+hesapc_selected$covid19_hesapc_poststudy[hesapc_selected$acute_covid == 1 & hesapc_selected$admidate >= ymd("2021-06-01") ] <- 1 
+
+
+hesapc_selected$longcovid_hesapc_study <- -1 
+hesapc_selected$longcovid_hesapc_study[hesapc_selected$long_covid == 1 & hesapc_selected$admidate < ymd("2021-06-01") ] <- 1 
+
+hesapc_selected$longcovid_hesapc_poststudy <- -1 
+hesapc_selected$longcovid_hesapc_poststudy[hesapc_selected$long_covid == 1 & hesapc_selected$admidate >= ymd("2021-06-01") ] <- 1 
+
+
+names(hesapc_selected)
+
+
+
+nhds_hesapc_byindividual <- hesapc_selected |>
+  group_by(llc_0010_stud_id) |>
+  summarize(covid19_hesapc_study = max(covid19_hesapc_study),
+            covid19_hesapc_poststudy = max(covid19_hesapc_poststudy),
+            longcovid__hesapc_study = max(longcovid_hesapc_study),
+            longcovid__hesapc_poststudy = max(longcovid_hesapc_poststudy))
+
+
+saveRDS(nhds_hesapc_byindividual , file = paste0("S:/LLC_0010/data/nhsd/nhsd_hesapc_byindividual", Sys.Date(), ".rds"))
+
+
+################################################################################
+##### nhsd_gdppr_v0001 () 
+data_source <- "nhsd"
+table <- "gdppr_v0001"
+nhsd_gdppr <- lab_func(proj_no,data_source,table) 
+nrow(nhsd_gdppr)
+
+View(nhsd_gdppr)
+help("write_feather")
+temp <- head(nhsd_gdppr)
+
+#Note I am using feather it is apparently faster than rds files but takes more space. Both seem to be 
+#Better than csv. NOte code below is to test and anyway the file is so big that the rds is noticable slower without timing it.  and smaller. 
+
+
+glimpse(nhsd_gdppr)
+max(nhsd_gdppr$avail_from_dt             )
+
+##################
+#Snowmed codelists 
+#Import the modified snowmed clodelist form excel 
+#NOte column names have to be correct and the health_domain_group can contain underscores "_" but not hyphens "-"
+snowmed_codelist <- read_excel("S:/LLC_0010/Codelist/llc_0010_Occup_Finan_codelist_shortnames.xlsx", sheet = "NHSD_GDPPR_SNOMED")
+
+#Drop the columns with the html etc. 
+snowmed_codelist <- select(snowmed_codelist, names(snowmed_codelist)[1:3] )
+
+#Some exploratory commands to check that data is OK. 
+View(snowmed_codelist)
+class(snowmed_codelist)
+names(snowmed_codelist)[1:3]
+unique(snowmed_codelist$health_domain_group)
+
+
+#Function used to create a vecto containing all snowmed codes for a condition. 
+pull_codes <- function(domain) {
+  filter(snowmed_codelist, health_domain_group == domain) |>
+    pull(code)
+}
+
+#Note the loop below creates a set of vectors for each health domain. 
+#The length command ditches the NA group and may not be necessary depending on the code list. 
+#the eval() and parse() are required to automate the command creation. 
+for (condition in unique(snowmed_codelist$health_domain_group)[2:length(unique(snowmed_codelist$health_domain_group))]) {
+  eval(parse(text = paste0(condition, "_snowmed", " <- pull_codes('", condition, "')")))
+}                
+
+#Now this loops across for each group of conditions creating an indicator for the whole data set. 
+#LOnger code might be more efficent as it doe smore comparisions at once but I am not sure. 
+#It is slow but time to run it is in minutes. 
+
+items_indicated <- nhsd_gdppr 
+for (condition in unique(snowmed_codelist$health_domain_group)[2:length(unique(snowmed_codelist$health_domain_group))]) {
+  eval(parse(text = paste0(" items_indicated <- items_indicated %>% mutate(", condition , " = if_else(code %in% ", condition , "_snowmed, 1, 0))" )))
+}
+### Saving ####
+#Note this is quite slow and I may use feather if I have to use it a lot. 
+saveRDS(items_indicated , file = "S:/LLC_0010/data/nhsd/nhsd_gdppitems_indicated.rds")
+
+nhsd_gdppr <- readRDS("S:/LLC_0010/data/nhsd/nhsd_gdppitems_indicated.rds")
+
+glimpse(nhsd_gdppr)
+gdppr_selected <- nhsd_gdppr[,c( "llc_0010_stud_id" ,  "date",  "record_date" , "COVID19" ,  "Long_COVID"      )] |>
+  filter(COVID19 == 1 | Long_COVID == 1)
+
+#Target variables 
+# covid19_gdppr_study (coded -1 is missing, 1 is a record)
+#covid19_gdppr_poststudy (coded -1 is missing, 1 is a record)
+
+#longcovid_gdppr_study (coded -1 is missing, 1 is a record)
+#longcovid_gdppr_poststudy (coded -1 is missing, 1 is a record)
+
+gdppr_selected$covid19_gdppr_study <- -1 
+gdppr_selected$covid19_gdppr_study[gdppr_selected$COVID19 == 1 & gdppr_selected$date < ymd("2021-06-01") ] <- 1
+
+gdppr_selected$covid19_gdppr_poststudy <- -1 
+gdppr_selected$covid19_gdppr_poststudy[gdppr_selected$COVID19 == 1 & gdppr_selected$date >= ymd("2021-06-01") ] <- 1
+
+gdppr_selected$longcovid_gdppr_study <- -1 
+gdppr_selected$longcovid_gdppr_study[gdppr_selected$Long_COVID == 1 & gdppr_selected$date < ymd("2021-06-01") ] <- 1
+
+gdppr_selected$longcovid_gdppr_poststudy <- -1 
+gdppr_selected$longcovid_gdppr_poststudy[gdppr_selected$Long_COVID == 1 & gdppr_selected$date >= ymd("2021-06-01") ] <- 1
+
+
+nhds_gdppr_byindividual <- gdppr_selected |>
+  group_by(llc_0010_stud_id) |>
+  summarize(covid19_study = max(covid19_gdppr_study),
+            covid19_poststudy = max(covid19_gdppr_poststudy),
+            longcovid_study = max(longcovid_gdppr_study),
+            longcovid_poststudy = max(longcovid_gdppr_poststudy))
+
+View(nhds_gdppr_byindividual)
+
+saveRDS(nhds_gdppr_byindividual , file = paste0("S:/LLC_0003/data/nhsd/nhds_gdppr_byindividual_" , Sys.Date() , ".rds"))
+
+#########################################################################################################################
+
+data_source <- "nhsd"
+table <- "pcm_v0001"
+# run labelling function
+data_t1 <- lab_func(proj_no,data_source,table)
+# create df name
+name_t1 <- paste0(data_source,"_",table)
+# assign name to dataset
+assign(name_t1, data_t1)
+
+glimpse(nhsd_pcm_v0001)
+max(nhsd_pcm_v0001$processingperioddate)
+
+nhsd_pcm_v0001 |>
+  filter(ymd("2020-03-01") > processingperioddate ) |>
+  group_by(llc_0003_stud_id) |>
+  count()
+
+unique(sort(nhsd_pcm_v0001$paidbnfcode))
+
+#write_feather(nhsd_gdppr , path = paste0("S:/LLC_0003/data/nhsd/nhsd_gdpp_", Sys.Date(), ".feather"))
+saveRDS(nhsd_pcm_v0001 , file = paste0("S:/LLC_0003/data/nhsd/nhsd_pcm_", Sys.Date(), ".rds"))
+
+
+
+
+###################################################################################
+#################################################################################
+################################################################################
+##### nhsd_gdppr_v0001 () 
+data_source <- "nhsd"
+table <- "gdppr_v0001"
+nhsd_gdppr <- lab_func(proj_no,data_source,table) 
+nrow(nhsd_gdppr)
+
+View(nhsd_gdppr)
+
+#importing codelists 
+#old_version_which_Iconverted. 
+##snowmed_codelist <- read.csv("S:/LLC_0003/Codelist/snomed_codes.csv")
+# Note this is code for very large numbers to be treated as actual numbers not scientific notation. 
+# This is necessary because 
+options(scipen = 999)
+library(readxl)
+snowmed_codelist <- read_excel("S:/LLC_0003/Codelist/Codelist_llc_0003_short_domain_names_01Aug22.xlsx", sheet = "NHSD_GDPPR_SNOMED")
+View(snowmed_codelist)
+
+Long_covid_snomed <- snowmed_codelist |>
+  filter(Health_Domain_Grouping == "Long_COVID") |>
+  pull(Code)
+
+pull_codes <- function(domain) {
+  filter(snowmed_codelist, Health_Domain_Grouping == domain) |>
+    pull(Code)
+}
+
+COVID19_snowmed <- pull_codes("COVID-19")
+Long_covid_snomed <- pull_codes("Long_COVID")
+Depression_snowmed <- pull_codes("Depression")
+Anxiety_snowmed <- pull_codes("Anxiety")
+OCD_snowmed <- pull_codes("OCD")
+eating_disorder_snowmed <- pull_codes("eating_disorder")
+SMI_snowmed <- pull_codes("SMI")
+Self_harm_snowmed <- pull_codes("Self-harm")
+Opioid_snowmed <- pull_codes("Opioid")
+
+items_indicated <- nhsd_gdppr %>%
+  mutate(Covid19 =    if_else(code %in% COVID19_snowmed, 1, 0 ),
+         Long_covid = if_else(code %in% Long_covid_snomed, 1, 0  ),
+         Depression = if_else(code %in% Depression_snowmed, 1, 0),
+         Anxiety = if_else(code %in% Anxiety_snowmed, 1, 0 ),
+         OCD = if_else(code %in% OCD_snowmed, 1, 0 ),
+         eating_disorder = if_else(code %in% eating_disorder_snowmed, 1, 0 ),
+         SMI  = if_else(code %in% SMI_snowmed, 1, 0 ),
+         Self_harm  =    if_else(code %in% Self_harm_snowmed, 1, 0 ),
+         Opioid =  if_else(code %in% Opioid_snowmed, 1, 0 ))
+
+sum(items_indicated$Covid19)
+sum(items_indicated$Long_covid)
+sum(items_indicated$Depression)
+sum(items_indicated$Anxiety)
+sum(items_indicated$OCD)
+sum(items_indicated$eating_disorder)
+sum(items_indicated$SMI)
+sum(items_indicated$Self_harm)
+sum(items_indicated$Opioid)
+
+#Some code for getting the dates of values  
+
+
+pre_pandemic <- items_indicated|>
+  filter(as.Date(date)  < "2020-03-01")
+
+core_pandemic <- items_indicated|>
+  filter(as.Date(date) >= "2020-03-01" & as.Date(date) <= "2021-05-01")
+
+late_pandemic <- items_indicated|>
+  filter(as.Date(date) >"2021-05-01")
+
+
+Ind_pre_pandemic <- pre_pandemic |>
+  group_by(llc_0003_stud_id) |>
+  summarise(Covid19 = max(Covid19),
+            Long_covid = max(Long_covid),
+            Depression = max(Depression), 
+            Anxiety = max(Anxiety), 
+            OCD = max(OCD),
+            eating_disorder = max(eating_disorder),
+            SMI = max(SMI),
+            Self_harm = max(Self_harm), 
+            Opioid = max(Opioid))
+
+Ind_pre_pandemic |>
+  summarise(Covid19 = sum(Covid19),
+            Long_covid = sum(Long_covid),
+            Depression = sum(Depression), 
+            Anxiety = sum(Anxiety), 
+            OCD = sum(OCD),
+            eating_disorder = sum(eating_disorder),
+            SMI = sum(SMI),
+            Self_harm = sum(Self_harm), 
+            Opioid = sum(Opioid))
+
+
+
+
+
+
+
+Ind_core_pandemic <- core_pandemic |>
+  group_by(llc_0003_stud_id) |>
+  summarise(Covid19 = max(Covid19),
+            Long_covid = max(Long_covid),
+            Depression = max(Depression), 
+            Anxiety = max(Anxiety), 
+            OCD = max(OCD),
+            eating_disorder = max(eating_disorder),
+            SMI = max(SMI),
+            Self_harm = max(Self_harm), 
+            Opioid = max(Opioid))
+            
+Ind_core_pandemic |>
+  summarise(Covid19 = sum(Covid19),
+            Long_covid = sum(Long_covid),
+            Depression = sum(Depression), 
+            Anxiety = sum(Anxiety), 
+            OCD = sum(OCD),
+            eating_disorder = sum(eating_disorder),
+            SMI = sum(SMI),
+            Self_harm = sum(Self_harm), 
+            Opioid = sum(Opioid))
+
+
+Ind_late_pandemic  <- late_pandemic |>
+  group_by(llc_0003_stud_id) |>
+  summarise(Covid19 = max(Covid19),
+            Long_covid = max(Long_covid),
+            Depression = max(Depression), 
+            Anxiety = max(Anxiety), 
+            OCD = max(OCD),
+            eating_disorder = max(eating_disorder),
+            SMI = max(SMI),
+            Self_harm = max(Self_harm), 
+            Opioid = max(Opioid))
+
+Ind_late_pandemic |>
+  summarise(Covid19 = sum(Covid19),
+            Long_covid = sum(Long_covid),
+            Depression = sum(Depression), 
+            Anxiety = sum(Anxiety), 
+            OCD = sum(OCD),
+            eating_disorder = sum(eating_disorder),
+            SMI = sum(SMI),
+            Self_harm = sum(Self_harm), 
+            Opioid = sum(Opioid))
+
+
+
+
+
+
+
+
+##############################################################################
+##### NHSD_hesapc
+data_source <- "nhsd"
+table <- "hesapc_v0001"
+nhsd_hesapc <- lab_func(proj_no, data_source,table)
+nrow(nhsd_hesapc)
+View(nhsd_hesapc)
+sort(unique(nhsd_hesapc$diag_3_01))
+###### Vectors to simplify code
+### Vectors of variables 
+#Diagnosis 3 digit variables 
+diag_3_vars <- c()
+for (i in seq(1:12)) {
+  diag_3_vars <- append(diag_3_vars, paste0("diag_3_", str_pad(i, 2, pad = "0") ))
+}
+
+#Diagnosis 4 digit variables
+diag_4_vars<- c()
+for (i in seq(1:12)) {
+  diag_4_vars   <- append(diag_4_vars, paste0("diag_4_", str_pad(i, 2, pad = "0") ))
+}
+
+#Including cause variables 
+cause_diag_3_vars <-append(diag_3_vars, "cause_3", after = 0)
+
+cause_diag_4_vars <-append(diag_4_vars, "cause_4", after = 0)
+
+
+
+##### Vectors for ICD 10 codes 
+### Covid related vectors 
+#The following is based on Scottish  Clinical Coding Standards Februrary 2021 - Public Health Scotland
+#U07.1 - Confirmed Covid 
+#U07.2 - Suspected Covid not confirmed with a test
+#U07.3 - personal history of COVid-19 in Scotland 
+#U07.4 - Post Covid-19 condition 
+#U07.5 - Multisystem inflammatory syndrome associated with Covid-19 
+#U07.6 - Need for immunisation for covid 
+#U07.7 - Covid19 vaccines causing adverse effects/reactions. 
+
+
+###vectors of ICD codes
+#Simple loop to create list of all Emergency Covid codes
+all_covid_related <- c()
+for (i in seq(1:7)) {
+  all_covid_related <- append(all_covid_related, paste0("U07", i ))
+
+#Loops to indicate people with a code indicating any disease
+covid_disease <-c()
+for (i in seq(1:5)) {
+  covid_disease <- append(covid_disease, paste0("U07", i ))
+}
+### Selfharm 
+#NB most self-harm codes will require three digits but Z915 personal history will require 4. 
+selfharm_xcodes <- c()
+for (i in (seq(60:84) + 59))  {
+  selfharm_xcodes <- append(selfharm_xcodes, paste0("X", i ))
+}
+
+### Depressive disorder
+depression_fcodes <- c("F32", "F33")
+
+### Anxiety disorder
+anxiety_fcodes <- c()
+for (i in seq(from = 40 , to = 48, length.out = 9))  {
+  anxiety_fcodes <- append(anxiety_fcodes, paste0("F", i ))
+}
+
+### Seen very little evidence of ICD 9 codes in the accidents file. 
+
+
+
+#
+##### The code to identify each of the concepts
+doesn't work '
+
+all_u_codes <- nhsd_hesapc |>
+  filter(     if_any( cause_diag_3_vars,  grepl("^U", ~ .) )) 
+         
+         cause_diag_3_vars
+         
+        
+           grepl("^U", diag_3_02) |
+           grepl("^U", diag_3_03) |
+           grepl("^U", diag_3_04) |
+           grepl("^U", diag_3_05) | 
+           grepl("^U", diag_3_06) |
+           grepl("^U", diag_3_07) |
+           grepl("^U", diag_3_08) |
+           grepl("^U", diag_3_09) |
+           grepl("^U", diag_3_10) |
+           grepl("^U", diag_3_11) |
+           grepl("^U", diag_3_12) )
+
+
+
+all_u_codes <- nhsd_hesapc |>
+  filter(grepl("^U", diag_3_01) | 
+           grepl("^U", diag_3_02) |
+           grepl("^U", diag_3_03) |
+           grepl("^U", diag_3_04) |
+           grepl("^U", diag_3_05) | 
+           grepl("^U", diag_3_06) |
+           grepl("^U", diag_3_07) |
+           grepl("^U", diag_3_08) |
+           grepl("^U", diag_3_09) |
+           grepl("^U", diag_3_10) |
+           grepl("^U", diag_3_11) |
+           grepl("^U", diag_3_12) )
+sort(unique(all_u_codes$diag_4_03))
+
+mutate(covid_related  = if_else( if_any( diag_4_vars , ~ . %in% all_covid_related ), TRUE, FALSE),
+       
+
+
+all_u_codes_add <- all_u_codes |>
+  mutate(covid_related  = if_else( if_any( diag_4_vars , ~ . %in% all_covid_related ), 1, 0),
+         covid_disease  = if_else( if_any( diag_4_vars , ~ . %in% covid_disease ), 1, 0),
+         long_covid  = if_else( if_any( diag_4_vars , ~ . %in% "U074" ), 1, 0),
+         depression  = if_else( if_any( diag_3_vars , ~ . %in% depression_fcodes ), 1, 0),
+         anxiety  = if_else( if_any( diag_3_vars , ~ . %in% anxiety_fcodes ), 1, 0),
+         self_harm = if_else( if_any( cause_diag_3_vars , ~ . %in% selfharm_xcodes ), 1, 
+                              if_else( if_any( cause_diag_4_vars , ~ . %in% "Z915" ), 1,     0)))
+
+
+
+
+
+ hhsd_full <- nhsd_hesapc |>
+  mutate(covid_related  = if_else( if_any( diag_4_vars , ~ . %in% all_covid_related ), 1, 0),
+         covid_disease  = if_else( if_any( diag_4_vars , ~ . %in% covid_disease ), 1, 0),
+         long_covid  = if_else( if_any( diag_4_vars , ~ . %in% "U074" ), 1, 0),
+         depression  = if_else( if_any( diag_3_vars , ~ . %in% depression_fcodes ), 1, 0),
+         anxiety  = if_else( if_any( diag_3_vars , ~ . %in% anxiety_fcodes ), 1, 0),
+         self_harm = if_else( if_any( cause_diag_3_vars , ~ . %in% selfharm_xcodes ), 1, 
+                              if_else( if_any( cause_diag_4_vars , ~ . %in% "Z915" ), 1, 0)))
+
+sum(hhsd_full$long_covid)   
+
+
+ 
+View(hhsd_full) 
+
+
+key_columns <- hhsd_full %>% 
+  select(llc_0003_stud_id, admidate, covid_related,covid_disease, long_covid, depression, anxiety, self_harm)
+
+people_with_events <- key_columns |>
+  group_by(llc_0003_stud_id) |>
+  summarise(covid_related = max(covid_related),
+            covid_disease = max(covid_disease),
+            long_covid = max(long_covid),
+            depression = max(depression),
+            anxiety = max(anxiety),
+            self_harm = max(self_harm))
+
+
+head(people_with_events)
+
+sum(nhsd_hesapc_pand$covid_related)
+sum(nhsd_hesapc_pand$covid_disease)
+sum(nhsd_hesapc_pand$long_covid)
+sum(nhsd_hesapc_pand$self_harm)
+
+
+
+
+nhsd_hesapc_pand <- covid_plus_mental_health |>
+  filter(as.Date(admidate) >= "2020-03-01" & as.Date(admidate) <= "2021-05-01")
+ 
+
+nhsd_hesapc_pand |>
+  group_by(llc_0003_stud_id) |>
+  summarise(covid_disease = max(covid_disease) ,
+            self_harm = max(self_harm),
+            depression = max(depression), 
+            long_covid = max(long_covid)) |>
+  summarise(ovid_disease = sum(covid_disease) ,
+            self_harm = sum(self_harm),
+            depression = sum(depression), 
+            long_covid = sum(long_covid)) 
+
+
+
